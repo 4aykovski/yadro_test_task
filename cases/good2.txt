@@ -1,0 +1,44 @@
+5
+12:00 20:00
+20
+10:00 2 client1 2
+10:00 1 client1
+10:15 4 client2
+10:22 3 client3
+12:01 2 client1 2
+12:02 4 client2
+12:22 3 client3
+12:30 1 client1
+12:31 2 client1 1
+12:32 1 client2
+12:33 2 client2 1
+12:33 2 client2 2
+12:40 1 client1
+12:40 1 client3
+12:41 2 client3 1
+12:41 2 client3 3
+12:45 4 client5
+12:50 1 client4
+12:55 2 client4 4
+13:00 2 client5 5
+13:00 1 client5
+13:05 2 client5 5
+13:10 1 client6
+13:10 2 client6 1
+13:15 2 client7 2
+13:15 1 client7
+13:15 1 client8
+13:15 1 client9
+13:15 1 client10
+13:15 3 client6
+13:15 3 client7
+13:15 3 client8
+13:15 3 client9
+13:15 3 client10
+13:15 3 client11
+13:20 1 client11
+15:50 4 client5
+16:00 4 client4
+16:00 4 client3
+16:00 4 client2
+16:00 4 client1

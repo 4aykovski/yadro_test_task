@@ -77,7 +77,7 @@ func validateInput(data []string) (string, error) {
 
 	firstLine := data[0]
 	tablesCount, ok := helpers.ParsePositiveInt(firstLine)
-	if !ok {
+	if !ok || tablesCount == 0 {
 		return firstLine, fmt.Errorf("third line is not valid")
 	}
 
