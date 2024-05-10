@@ -6,13 +6,14 @@ import (
 
 	"github.com/4aykovski/yadro_test_task/internal/controller/event"
 	"github.com/4aykovski/yadro_test_task/internal/controller/event/incoming"
+	"github.com/4aykovski/yadro_test_task/internal/service"
 )
 
 type tableService interface {
-	ClientArrived(event event.Event) string
-	ClientLeft(event event.Event) string
-	ClientTookPlace(event event.Event) string
-	ClientWaiting(event event.Event) string
+	ClientArrived(input service.ClientArrivedDto) string
+	ClientLeft(input service.ClientLeftDto) string
+	ClientTookPlace(input service.ClientTookPlaceDto) string
+	ClientWaiting(input service.ClientWaitingDto) string
 	OpenTime() time.Time
 	CloseTime() time.Time
 	PrintIncome()
@@ -30,15 +31,39 @@ func New(tableService tableService) *Controller {
 }
 
 func (c *Controller) HandleEvent(event event.Event) (string, error) {
+	inEvent, ok := event.(*incoming.Event)
+	if !ok {
+		return "", fmt.Errorf("unexpected event: %v", event)
+	}
+
 	switch event.Type() {
 	case incoming.ClientArrived:
-		return c.tableService.ClientArrived(event), nil
+		dto := service.ClientArrivedDto{
+			ClientName: inEvent.ClientName(),
+			Time:       inEvent.Time(),
+		}
+
+		return c.tableService.ClientArrived(dto), nil
 	case incoming.ClientLeft:
-		return c.tableService.ClientLeft(event), nil
+		dto := service.ClientLeftDto{
+			ClientName: inEvent.ClientName(),
+			Time:       inEvent.Time(),
+		}
+		return c.tableService.ClientLeft(dto), nil
 	case incoming.ClientTookPlace:
-		return c.tableService.ClientTookPlace(event), nil
+		dto := service.ClientTookPlaceDto{
+			ClientName: inEvent.ClientName(),
+			TableId:    inEvent.TableId(),
+			Time:       inEvent.Time(),
+		}
+		return c.tableService.ClientTookPlace(dto), nil
 	case incoming.ClientWaiting:
-		return c.tableService.ClientWaiting(event), nil
+		dto := service.ClientWaitingDto{
+			ClientName: inEvent.ClientName(),
+			Time:       inEvent.Time(),
+		}
+
+		return c.tableService.ClientWaiting(dto), nil
 	}
 	return "", fmt.Errorf("unknown event type: %v", event.Type())
 }

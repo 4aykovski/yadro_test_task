@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/4aykovski/yadro_test_task/internal/controller/event"
-	"github.com/4aykovski/yadro_test_task/internal/controller/event/incoming"
 	"github.com/4aykovski/yadro_test_task/internal/controller/event/outgoing"
 	"github.com/4aykovski/yadro_test_task/internal/model"
 )
@@ -34,56 +32,56 @@ func NewTableService(tables []model.Table, openTime, closeTime time.Time, oneHou
 	}
 }
 
-func (s *TableService) ClientArrived(event event.Event) string {
-	inEvent, ok := event.(*incoming.Event)
-	if !ok {
-		return fmt.Sprintf("unknown event: %v", event)
-	}
+type ClientArrivedDto struct {
+	Time       time.Time
+	ClientName string
+}
 
+func (s *TableService) ClientArrived(input ClientArrivedDto) string {
 	// проверить рабочие часы
-	if !s.isOpenNow(inEvent.Time()) {
-		errorEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrNotOpenYet)
+	if !s.isOpenNow(input.Time) {
+		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrNotOpenYet)
 		return errorEvent.String()
 	}
 
 	// проверить присутствие клиента в пришедших
-	if s.isClientInClub(inEvent.ClientName()) {
-		errorEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrYouShallNotPass)
+	if s.isClientInClub(input.ClientName) {
+		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrYouShallNotPass)
 		return errorEvent.String()
 	}
 
 	// добавить в пришедших клиентов
-	s.arrivedClients = append(s.arrivedClients, inEvent.ClientName())
+	s.arrivedClients = append(s.arrivedClients, input.ClientName)
 	return ""
 }
 
-func (s *TableService) ClientLeft(event event.Event) string {
-	inEvent, ok := event.(*incoming.Event)
-	if !ok {
-		return fmt.Sprintf("unknown event: %v", event)
-	}
+type ClientLeftDto struct {
+	Time       time.Time
+	ClientName string
+}
 
+func (s *TableService) ClientLeft(input ClientLeftDto) string {
 	// проверить в клубе ли клиент
-	if !s.isClientInClub(inEvent.ClientName()) {
-		outEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrClientUnknown)
+	if !s.isClientInClub(input.ClientName) {
+		outEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
 		return outEvent.String()
 	}
 
 	// посчитать прибыль и занимаемое время
-	table, ok := s.busyTables[inEvent.ClientName()]
+	table, ok := s.busyTables[input.ClientName]
 	if ok {
-		table.Income += s.calculateIncome(*table, inEvent.Time())
-		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, inEvent.Time()))
+		table.Income += s.calculateIncome(*table, input.Time)
+		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, input.Time))
 	}
 
 	// освободить стол
-	s.busyTables[inEvent.ClientName()].IsTaken = false
-	freeTableId := s.busyTables[inEvent.ClientName()].Id
-	delete(s.busyTables, inEvent.ClientName())
+	s.busyTables[input.ClientName].IsTaken = false
+	freeTableId := s.busyTables[input.ClientName].Id
+	delete(s.busyTables, input.ClientName)
 
 	// удалить из клуба
 	for i, client := range s.arrivedClients {
-		if client == inEvent.ClientName() {
+		if client == input.ClientName {
 			s.arrivedClients = append(s.arrivedClients[:i], s.arrivedClients[i+1:]...)
 			break
 		}
@@ -93,65 +91,67 @@ func (s *TableService) ClientLeft(event event.Event) string {
 	if len(s.clientQueue) > 0 {
 		client := s.clientQueue[0]
 		s.clientQueue = s.clientQueue[1:]
-		s.changeClientTable(client, freeTableId, inEvent.Time())
+		s.changeClientTable(client, freeTableId, input.Time)
 
-		outEvent := outgoing.NewClientTookPlaceEvent(inEvent.Time(), client, freeTableId)
+		outEvent := outgoing.NewClientTookPlaceEvent(input.Time, client, freeTableId)
 		return outEvent.String()
 	}
 
 	return ""
 }
 
-func (s *TableService) ClientTookPlace(event event.Event) string {
-	inEvent, ok := event.(*incoming.Event)
-	if !ok {
-		return fmt.Sprintf("unknown event: %v", event)
-	}
+type ClientTookPlaceDto struct {
+	Time       time.Time
+	TableId    int
+	ClientName string
+}
 
+func (s *TableService) ClientTookPlace(input ClientTookPlaceDto) string {
 	// проверить присутствие клиента в клубе
-	if !s.isClientInClub(inEvent.ClientName()) {
-		errorEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrClientUnknown)
+	if !s.isClientInClub(input.ClientName) {
+		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
 		return errorEvent.String()
 	}
 
 	// проверить занят ли стол за который садится клиент
-	if !s.isTableFree(inEvent.TableId()) {
-		errorEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrPlaceIsBusy)
+	if !s.isTableFree(input.TableId) {
+		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrPlaceIsBusy)
 		return errorEvent.String()
 	}
 
 	// посчитать выручку, если пересаживается, и занимаемое время
-	table, ok := s.busyTables[inEvent.ClientName()]
+	table, ok := s.busyTables[input.ClientName]
 	if ok {
-		table.Income += s.calculateIncome(*table, inEvent.Time())
-		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, inEvent.Time()))
+		table.Income += s.calculateIncome(*table, input.Time)
+		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, input.Time))
 	}
 
 	// поменять стол клиента
-	s.changeClientTable(inEvent.ClientName(), inEvent.TableId(), inEvent.Time())
+	s.changeClientTable(input.ClientName, input.TableId, input.Time)
 	return ""
 }
 
-func (s *TableService) ClientWaiting(event event.Event) string {
-	inEvent, ok := event.(*incoming.Event)
-	if !ok {
-		return fmt.Sprintf("unknown event: %v", event)
-	}
+type ClientWaitingDto struct {
+	Time       time.Time
+	ClientName string
+}
+
+func (s *TableService) ClientWaiting(input ClientWaitingDto) string {
 
 	// проверить свободные столы
 	if s.isThereFreeTables() {
-		errEvent := outgoing.NewErrorEvent(inEvent.Time(), outgoing.ErrICanWaitNoLonger)
+		errEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrICanWaitNoLonger)
 		return errEvent.String()
 	}
 
 	// проверить длину очереди
 	if len(s.clientQueue) > len(s.tables) {
-		errEvent := outgoing.NewClientLeftEvent(inEvent.Time(), inEvent.ClientName())
+		errEvent := outgoing.NewClientLeftEvent(input.Time, input.ClientName)
 		return errEvent.String()
 	}
 
 	// поместить в очередь
-	s.clientQueue = append(s.clientQueue, inEvent.ClientName())
+	s.clientQueue = append(s.clientQueue, input.ClientName)
 	return ""
 }
 
