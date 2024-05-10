@@ -10,6 +10,7 @@ import (
 	"github.com/4aykovski/yadro_test_task/internal/controller/event"
 	"github.com/4aykovski/yadro_test_task/internal/controller/event/incoming"
 	"github.com/4aykovski/yadro_test_task/internal/model"
+	"github.com/4aykovski/yadro_test_task/internal/service"
 	"github.com/4aykovski/yadro_test_task/pkg/helpers"
 )
 
@@ -89,7 +90,9 @@ func Run(data []string) error {
 		return fmt.Errorf("can't parse events: %w", err)
 	}
 
-	cont := controller.New(tables, openTime, closeTime, oneHourCost)
+	serv := service.NewTableService(tables, openTime, closeTime, oneHourCost)
+
+	cont := controller.New(serv)
 
 	sys := New(events, cont)
 

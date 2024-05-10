@@ -24,10 +24,6 @@ func main() {
 	}
 
 	filename := os.Args[1]
-	if !isFilenameValid(filename) {
-		slog.Error("filename is not valid")
-		os.Exit(0)
-	}
 
 	data, err := readFileByLine(filename)
 	if err != nil {
@@ -71,15 +67,6 @@ func readFileByLine(filename string) ([]string, error) {
 	}
 
 	return data, nil
-}
-
-func isFilenameValid(filename string) bool {
-	split := strings.Split(filename, ".")
-	if len(split) != 2 {
-		return false
-	}
-
-	return true
 }
 
 func validateInput(data []string) (string, error) {
