@@ -97,4 +97,8 @@ test_cases:
 	@./$(BIN_NAME) ./cases/time_val4.txt
 	@echo " Test-case 4 done."
 
+	@echo " Empty file test-case is running..."
+	@./$(BIN_NAME) ./cases/empty_file.txt
+	@echo " Empty file test-case  done."
+
 	@echo "All test-cases done"

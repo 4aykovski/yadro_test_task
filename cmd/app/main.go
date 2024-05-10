@@ -33,11 +33,6 @@ func main() {
 	}
 
 	if line, err := validateInput(data); err != nil {
-		if line == "" {
-			slog.Error(err.Error())
-			os.Exit(0)
-		}
-
 		fmt.Println(line)
 		os.Exit(0)
 	}
