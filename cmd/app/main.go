@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/4aykovski/yadro_test_task/internal/app"
 	"github.com/4aykovski/yadro_test_task/pkg/helpers"
@@ -90,8 +91,9 @@ func validateInput(data []string) (string, error) {
 		return thirdLine, fmt.Errorf("third line is not valid")
 	}
 
+	prevTime := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	for _, line := range data[3:] {
-		if !isLineValid(line, tablesCount) {
+		if !isLineValid(line, tablesCount, &prevTime) {
 			return line, fmt.Errorf("line is not valid")
 		}
 	}
@@ -116,7 +118,7 @@ func isSecondLineValid(secondLine string) bool {
 	return true
 }
 
-func isLineValid(line string, tablesCount int) bool {
+func isLineValid(line string, tablesCount int, prevTime *time.Time) bool {
 	const allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789_-"
 	var threeLengthTypes = []string{"1", "3", "4"}
 	var fourLengthTypes = []string{"2"}
@@ -140,8 +142,11 @@ func isLineValid(line string, tablesCount int) bool {
 			return false
 		}
 
-		_, err := helpers.ParseTime(split[0])
+		currTime, err := helpers.ParseTime(split[0])
 		if err != nil {
+			return false
+		}
+		if currTime.Before(*prevTime) {
 			return false
 		}
 
@@ -152,6 +157,8 @@ func isLineValid(line string, tablesCount int) bool {
 		if !helpers.IsAllowedChars(split[2], allowedChars) {
 			return false
 		}
+
+		*prevTime = currTime
 	default:
 		return false
 	}
