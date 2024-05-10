@@ -251,7 +251,15 @@ func (s *TableService) isThereFreeTables() bool {
 func (s *TableService) calculateIncome(table model.Table, leaveTime time.Time) int {
 	roundedTakenAt := table.TakenAt
 	roundedLeaveAt := leaveTime
-	diff := time.Hour + roundedLeaveAt.Sub(roundedTakenAt).Truncate(time.Hour)
+
+	var sub = roundedLeaveAt.Sub(roundedTakenAt)
+	var diff time.Duration
+	if sub.Minutes() == 60 {
+		diff = sub.Truncate(time.Hour)
+	} else {
+		diff = time.Hour + sub.Truncate(time.Hour)
+	}
+
 	return s.oneHourCost * int(diff.Hours())
 }
 
