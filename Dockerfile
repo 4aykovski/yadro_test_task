@@ -10,7 +10,10 @@ FROM alpine
 
 WORKDIR /app
 
+RUN apk add make
+
 COPY --from=builder /usr/local/src/app/bin/app .
 COPY --from=builder /usr/local/src/app/cases ./cases
+COPY --from=builder /usr/local/src/app/Makefile .
 
-CMD ["./app"]
+CMD make test_cases
