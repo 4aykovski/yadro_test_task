@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/4aykovski/yadro_test_task/internal/controller/event/outgoing"
@@ -13,7 +14,7 @@ type TableService struct {
 	closeTime   time.Time
 	oneHourCost int
 
-	arrivedClients []string
+	arrivedClients map[string]struct{}
 	clientQueue    []string
 
 	tables     []model.Table
@@ -25,7 +26,7 @@ func NewTableService(tables []model.Table, openTime, closeTime time.Time, oneHou
 		openTime:       openTime,
 		closeTime:      closeTime,
 		oneHourCost:    oneHourCost,
-		arrivedClients: make([]string, 0, len(tables)),
+		arrivedClients: make(map[string]struct{}, len(tables)),
 		clientQueue:    make([]string, 0, len(tables)),
 		busyTables:     make(map[string]*model.Table, len(tables)),
 		tables:         tables,
@@ -51,7 +52,7 @@ func (s *TableService) ClientArrived(input ClientArrivedDto) string {
 	}
 
 	// добавить в пришедших клиентов
-	s.arrivedClients = append(s.arrivedClients, input.ClientName)
+	s.arrivedClients[input.ClientName] = struct{}{}
 	return ""
 }
 
@@ -74,21 +75,19 @@ func (s *TableService) ClientLeft(input ClientLeftDto) string {
 		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, input.Time))
 	}
 
-	// освободить стол
-	s.busyTables[input.ClientName].IsTaken = false
-	freeTableId := s.busyTables[input.ClientName].Id
-	delete(s.busyTables, input.ClientName)
-
-	// удалить из клуба
-	for i, client := range s.arrivedClients {
-		if client == input.ClientName {
-			s.arrivedClients = append(s.arrivedClients[:i], s.arrivedClients[i+1:]...)
-			break
-		}
+	var freeTableId = 0
+	// освободить стол, если клиент занимает стол
+	if table, ok := s.busyTables[input.ClientName]; ok {
+		table.IsTaken = false
+		freeTableId = table.Id
+		delete(s.busyTables, input.ClientName)
 	}
 
+	// удалить из клуба
+	delete(s.arrivedClients, input.ClientName)
+
 	// посадить клиента из очереди за освободившийся стол
-	if len(s.clientQueue) > 0 {
+	if len(s.clientQueue) > 0 && freeTableId != 0 {
 		client := s.clientQueue[0]
 		s.clientQueue = s.clientQueue[1:]
 		s.changeClientTable(client, freeTableId, input.Time)
@@ -137,6 +136,11 @@ type ClientWaitingDto struct {
 }
 
 func (s *TableService) ClientWaiting(input ClientWaitingDto) string {
+	// проверить присутствие клиента в клубе
+	if !s.isClientInClub(input.ClientName) {
+		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
+		return errorEvent.String()
+	}
 
 	// проверить свободные столы
 	if s.isThereFreeTables() {
@@ -171,6 +175,25 @@ func (s *TableService) PrintIncome() {
 
 func (s *TableService) Close() {
 	// выгнать всех
+	clients := make([]string, 0, len(s.arrivedClients))
+	for clientName := range s.arrivedClients {
+		clients = append(clients, clientName)
+	}
+	sort.Strings(clients)
+
+	for _, clientName := range clients {
+		if table, ok := s.busyTables[clientName]; ok {
+			table.Income += s.calculateIncome(*table, s.closeTime)
+			table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, s.closeTime))
+			delete(s.busyTables, clientName)
+		}
+
+		delete(s.arrivedClients, clientName)
+
+		outgoingEvent := outgoing.NewClientLeftEvent(s.closeTime, clientName)
+		fmt.Println(outgoingEvent.String())
+	}
+
 	for clientName, table := range s.busyTables {
 		table.Income += s.calculateIncome(*table, s.closeTime)
 		table.WasTakenFor = table.WasTakenFor.Add(s.calculateBusyTime(*table, s.closeTime))
@@ -188,12 +211,8 @@ func (s *TableService) isOpenNow(time time.Time) bool {
 }
 
 func (s *TableService) isClientInClub(clientName string) bool {
-	for _, client := range s.arrivedClients {
-		if client == clientName {
-			return true
-		}
-	}
-	return false
+	_, ok := s.arrivedClients[clientName]
+	return ok
 }
 
 func (s *TableService) isTableFree(tableId int) bool {
