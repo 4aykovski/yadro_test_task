@@ -74,34 +74,34 @@ test_cases:
 
 	@echo "-----"
 
-	@echo " Test-case 4 is running..."
+	@echo "	Test-case 4 is running..."
 	@./$(BIN_NAME) ./cases/tables_count_val4.txt
-	@echo " Test-case 4 done."
+	@echo "	Test-case 4 done."
 	@echo ""
 
 	@echo "Time validation:"
 
-	@echo " Test-case 1 is running..."
+	@echo "	Test-case 1 is running..."
 	@./$(BIN_NAME) ./cases/time_val1.txt
-	@echo " Test-case 1 done."
+	@echo "	Test-case 1 done."
 
 	@echo "-----"
 
-	@echo " Test-case 2 is running..."
+	@echo "	Test-case 2 is running..."
 	@./$(BIN_NAME) ./cases/time_val2.txt
-	@echo " Test-case 2 done."
+	@echo "	Test-case 2 done."
 
 	@echo "-----"
 
-	@echo " Test-case 3 is running..."
+	@echo "	Test-case 3 is running..."
 	@./$(BIN_NAME) ./cases/time_val3.txt
-	@echo " Test-case 3 done."
+	@echo "	Test-case 3 done."
 
 	@echo "-----"
 
-	@echo " Test-case 4 is running..."
+	@echo "	Test-case 4 is running..."
 	@./$(BIN_NAME) ./cases/time_val4.txt
-	@echo " Test-case 4 done."
+	@echo "	Test-case 4 done."
 
 	@echo " Empty file test-case is running..."
 	@./$(BIN_NAME) ./cases/empty_file.txt
