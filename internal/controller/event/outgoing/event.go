@@ -54,8 +54,8 @@ func NewErrorEvent(time time.Time, msg string) *Event {
 	}
 }
 
-func (e *Event) Type() Type {
-	return e._type
+func (e *Event) Type() int {
+	return int(e._type)
 }
 
 func (e *Event) String() string {

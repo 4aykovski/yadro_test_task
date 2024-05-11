@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/4aykovski/yadro_test_task/internal/controller/event"
 	"github.com/4aykovski/yadro_test_task/internal/controller/event/outgoing"
 	"github.com/4aykovski/yadro_test_task/internal/model"
 )
@@ -38,22 +39,22 @@ type ClientArrivedDto struct {
 	ClientName string
 }
 
-func (s *TableService) ClientArrived(input ClientArrivedDto) string {
+func (s *TableService) ClientArrived(input ClientArrivedDto) event.Event {
 	// проверить рабочие часы
 	if !s.isOpenNow(input.Time) {
 		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrNotOpenYet)
-		return errorEvent.String()
+		return errorEvent
 	}
 
 	// проверить присутствие клиента в пришедших
 	if s.isClientInClub(input.ClientName) {
 		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrYouShallNotPass)
-		return errorEvent.String()
+		return errorEvent
 	}
 
 	// добавить в пришедших клиентов
 	s.arrivedClients[input.ClientName] = struct{}{}
-	return ""
+	return nil
 }
 
 type ClientLeftDto struct {
@@ -61,11 +62,11 @@ type ClientLeftDto struct {
 	ClientName string
 }
 
-func (s *TableService) ClientLeft(input ClientLeftDto) string {
+func (s *TableService) ClientLeft(input ClientLeftDto) event.Event {
 	// проверить в клубе ли клиент
 	if !s.isClientInClub(input.ClientName) {
 		outEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
-		return outEvent.String()
+		return outEvent
 	}
 
 	// посчитать прибыль и занимаемое время
@@ -93,10 +94,10 @@ func (s *TableService) ClientLeft(input ClientLeftDto) string {
 		s.changeClientTable(client, freeTableId, input.Time)
 
 		outEvent := outgoing.NewClientTookPlaceEvent(input.Time, client, freeTableId)
-		return outEvent.String()
+		return outEvent
 	}
 
-	return ""
+	return nil
 }
 
 type ClientTookPlaceDto struct {
@@ -105,17 +106,17 @@ type ClientTookPlaceDto struct {
 	ClientName string
 }
 
-func (s *TableService) ClientTookPlace(input ClientTookPlaceDto) string {
+func (s *TableService) ClientTookPlace(input ClientTookPlaceDto) event.Event {
 	// проверить присутствие клиента в клубе
 	if !s.isClientInClub(input.ClientName) {
 		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
-		return errorEvent.String()
+		return errorEvent
 	}
 
 	// проверить занят ли стол за который садится клиент
 	if !s.isTableFree(input.TableId) {
 		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrPlaceIsBusy)
-		return errorEvent.String()
+		return errorEvent
 	}
 
 	// посчитать выручку, если пересаживается, и занимаемое время
@@ -127,7 +128,7 @@ func (s *TableService) ClientTookPlace(input ClientTookPlaceDto) string {
 
 	// поменять стол клиента
 	s.changeClientTable(input.ClientName, input.TableId, input.Time)
-	return ""
+	return nil
 }
 
 type ClientWaitingDto struct {
@@ -135,28 +136,28 @@ type ClientWaitingDto struct {
 	ClientName string
 }
 
-func (s *TableService) ClientWaiting(input ClientWaitingDto) string {
+func (s *TableService) ClientWaiting(input ClientWaitingDto) event.Event {
 	// проверить присутствие клиента в клубе
 	if !s.isClientInClub(input.ClientName) {
 		errorEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrClientUnknown)
-		return errorEvent.String()
+		return errorEvent
 	}
 
 	// проверить свободные столы
 	if s.isThereFreeTables() {
 		errEvent := outgoing.NewErrorEvent(input.Time, outgoing.ErrICanWaitNoLonger)
-		return errEvent.String()
+		return errEvent
 	}
 
 	// проверить длину очереди
 	if len(s.clientQueue) > len(s.tables) {
 		errEvent := outgoing.NewClientLeftEvent(input.Time, input.ClientName)
-		return errEvent.String()
+		return errEvent
 	}
 
 	// поместить в очередь
 	s.clientQueue = append(s.clientQueue, input.ClientName)
-	return ""
+	return nil
 }
 
 func (s *TableService) OpenTime() time.Time {

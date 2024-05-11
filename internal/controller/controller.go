@@ -10,10 +10,10 @@ import (
 )
 
 type tableService interface {
-	ClientArrived(input service.ClientArrivedDto) string
-	ClientLeft(input service.ClientLeftDto) string
-	ClientTookPlace(input service.ClientTookPlaceDto) string
-	ClientWaiting(input service.ClientWaitingDto) string
+	ClientArrived(input service.ClientArrivedDto) event.Event
+	ClientLeft(input service.ClientLeftDto) event.Event
+	ClientTookPlace(input service.ClientTookPlaceDto) event.Event
+	ClientWaiting(input service.ClientWaitingDto) event.Event
 	OpenTime() time.Time
 	CloseTime() time.Time
 	PrintIncome()
@@ -30,13 +30,14 @@ func New(tableService tableService) *Controller {
 	}
 }
 
-func (c *Controller) HandleEvent(event event.Event) (string, error) {
+// HandleEvent handles incoming event and return outgoing event if it was generated.
+func (c *Controller) HandleEvent(event event.Event) (event.Event, error) {
 	inEvent, ok := event.(*incoming.Event)
 	if !ok {
-		return "", fmt.Errorf("unexpected event: %v", event)
+		return nil, fmt.Errorf("unexpected event: %v", event)
 	}
 
-	switch event.Type() {
+	switch incoming.Type(event.Type()) {
 	case incoming.ClientArrived:
 		dto := service.ClientArrivedDto{
 			ClientName: inEvent.ClientName(),
@@ -65,7 +66,7 @@ func (c *Controller) HandleEvent(event event.Event) (string, error) {
 
 		return c.tableService.ClientWaiting(dto), nil
 	}
-	return "", fmt.Errorf("unknown event type: %v", event.Type())
+	return nil, fmt.Errorf("unknown event type: %v", event.Type())
 }
 
 func (c *Controller) Close() {

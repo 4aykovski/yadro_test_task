@@ -69,12 +69,12 @@ func NewClientLeft(time time.Time, clientName string) *Event {
 	}
 }
 
-func (e *Event) Type() Type {
-	return e._type
+func (e *Event) Type() int {
+	return int(e._type)
 }
 
 func (e *Event) String() string {
-	switch e.Type() {
+	switch e._type {
 	case ClientArrived, ClientLeft, ClientWaiting:
 		return fmt.Sprintf("%v %v %v", e.time.Format("15:04"), e._type, e.clientName)
 	case ClientTookPlace:

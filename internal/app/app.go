@@ -15,7 +15,7 @@ import (
 )
 
 type Controller interface {
-	HandleEvent(event event.Event) (string, error)
+	HandleEvent(event event.Event) (event.Event, error)
 	OpenTime() time.Time
 	CloseTime() time.Time
 	PrintIncome()
@@ -37,6 +37,7 @@ func New(events []event.Event, controller Controller) *System {
 func (s *System) Run() error {
 	fmt.Println(s.controller.OpenTime().Format("15:04"))
 
+	// range over all taken events and process them
 	for _, e := range s.events {
 		fmt.Println(e.String())
 		res, err := s.controller.HandleEvent(e)
@@ -44,8 +45,8 @@ func (s *System) Run() error {
 			return err
 		}
 
-		if res != "" {
-			fmt.Println(res)
+		if res != nil {
+			fmt.Println(res.String())
 		}
 	}
 
@@ -99,6 +100,7 @@ func Run(data []string) error {
 	return sys.Run()
 }
 
+// ParseEvents parse events from slice of strings that contains strings in format "15:04 <event type> <event body>"
 func ParseEvents(data []string) ([]event.Event, error) {
 	events := make([]event.Event, 0, len(data))
 
