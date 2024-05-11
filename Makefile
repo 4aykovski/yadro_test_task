@@ -27,6 +27,12 @@ test_cases:
 	@./$(BIN_NAME) ./cases/good3.txt
 	@echo "	Good test-case 3 done."
 
+	@echo "-----"
+
+	@echo "	Alphabetical order test-case is running..."
+	@./$(BIN_NAME) ./cases/alphabetical_order.txt
+	@echo "	Alphabetical order test-case done."
+
 	@echo ""
 
 	@echo "Arguments count validation:"

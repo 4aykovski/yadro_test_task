@@ -254,7 +254,7 @@ func (s *TableService) calculateIncome(table model.Table, leaveTime time.Time) i
 
 	var sub = roundedLeaveAt.Sub(roundedTakenAt)
 	var diff time.Duration
-	if sub.Minutes() == 60 {
+	if int(sub.Minutes())%60 == 0 {
 		diff = sub.Truncate(time.Hour)
 	} else {
 		diff = time.Hour + sub.Truncate(time.Hour)
